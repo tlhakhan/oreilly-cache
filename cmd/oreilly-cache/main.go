@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -27,9 +28,26 @@ func main() {
 	pageSize        := flag.Int("page-size", 100, "items per upstream page request")
 	httpTimeout     := flag.Duration("http-timeout", 30*time.Second, "upstream HTTP client timeout per request")
 	shutdownTimeout := flag.Duration("shutdown-timeout", 10*time.Second, "graceful shutdown deadline")
+	staticDir       := flag.String("static-dir", "", "optional: serve SPA static files from this directory")
 	flag.Parse()
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	if *staticDir != "" {
+		absDir, err := filepath.Abs(*staticDir)
+		if err != nil {
+			log.Error("static-dir: cannot resolve path", "dir", *staticDir, "err", err)
+			os.Exit(1)
+		}
+		if _, err := os.Stat(absDir); err != nil {
+			log.Error("static-dir: directory not found", "dir", absDir)
+			os.Exit(1)
+		}
+		indexPath := filepath.Join(absDir, "index.html")
+		_, indexErr := os.Stat(indexPath)
+		log.Info("static files enabled", "dir", absDir, "index_found", indexErr == nil)
+		*staticDir = absDir
+	}
 
 	st := store.New(*cacheDir)
 	cl := upstream.New(*upstreamBase, &http.Client{Timeout: *httpTimeout})
@@ -39,7 +57,7 @@ func main() {
 		PageSize: *pageSize,
 	})
 
-	handler := server.NewHandler(st, cl, log)
+	handler := server.NewHandler(st, cl, log, *staticDir)
 	srv := &http.Server{
 		Addr:         *listenAddr,
 		Handler:      handler,

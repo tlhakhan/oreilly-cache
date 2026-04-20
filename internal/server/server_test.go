@@ -100,7 +100,7 @@ func TestPublisherIndex(t *testing.T) {
 	}}
 	seedJSON(t, st, store.PublisherIndexPath(), index)
 
-	h := server.NewHandler(st, newMockCovers(), discardLog)
+	h := server.NewHandler(st, newMockCovers(), discardLog, "")
 	w := do(t, h, "GET", "/publishers", nil)
 
 	if w.Code != http.StatusOK {
@@ -119,7 +119,7 @@ func TestPublisherIndex(t *testing.T) {
 }
 
 func TestPublisherIndexNotFound(t *testing.T) {
-	h := server.NewHandler(newStore(t), newMockCovers(), discardLog)
+	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, "")
 	w := do(t, h, "GET", "/publishers", nil)
 	if w.Code != http.StatusNotFound {
 		t.Errorf("expected 404, got %d", w.Code)
@@ -130,7 +130,7 @@ func TestPublisher(t *testing.T) {
 	st := newStore(t)
 	seedJSON(t, st, store.PublisherPath("abc-123"), transform.Publisher{UUID: "abc-123", Name: "Test Pub"})
 
-	h := server.NewHandler(st, newMockCovers(), discardLog)
+	h := server.NewHandler(st, newMockCovers(), discardLog, "")
 	w := do(t, h, "GET", "/publishers/abc-123", nil)
 
 	if w.Code != http.StatusOK {
@@ -144,7 +144,7 @@ func TestPublisher(t *testing.T) {
 }
 
 func TestPublisherNotFound(t *testing.T) {
-	h := server.NewHandler(newStore(t), newMockCovers(), discardLog)
+	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, "")
 	w := do(t, h, "GET", "/publishers/no-such-uuid", nil)
 	if w.Code != http.StatusNotFound {
 		t.Errorf("expected 404, got %d", w.Code)
@@ -158,7 +158,7 @@ func TestPublisherItems(t *testing.T) {
 	}}
 	seedJSON(t, st, store.PublisherItemsPath("pub-1"), list)
 
-	h := server.NewHandler(st, newMockCovers(), discardLog)
+	h := server.NewHandler(st, newMockCovers(), discardLog, "")
 	w := do(t, h, "GET", "/publishers/pub-1/items", nil)
 
 	if w.Code != http.StatusOK {
@@ -179,7 +179,7 @@ func TestItem(t *testing.T) {
 		Name: "Learning Go",
 	})
 
-	h := server.NewHandler(st, newMockCovers(), discardLog)
+	h := server.NewHandler(st, newMockCovers(), discardLog, "")
 	w := do(t, h, "GET", "/items/"+ourn, nil)
 
 	if w.Code != http.StatusOK {
@@ -193,7 +193,7 @@ func TestItem(t *testing.T) {
 }
 
 func TestItemNotFound(t *testing.T) {
-	h := server.NewHandler(newStore(t), newMockCovers(), discardLog)
+	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, "")
 	w := do(t, h, "GET", "/items/no-such-id", nil)
 	if w.Code != http.StatusNotFound {
 		t.Errorf("expected 404, got %d", w.Code)
@@ -205,7 +205,7 @@ func TestConditionalGet(t *testing.T) {
 	st := newStore(t)
 	seedJSON(t, st, store.PublisherIndexPath(), transform.PublisherIndex{})
 
-	h := server.NewHandler(st, newMockCovers(), discardLog)
+	h := server.NewHandler(st, newMockCovers(), discardLog, "")
 
 	// First request to capture Last-Modified.
 	w1 := do(t, h, "GET", "/publishers", nil)
@@ -225,7 +225,7 @@ func TestConditionalGet(t *testing.T) {
 // ---- /healthz ----
 
 func TestHealthzNoScrape(t *testing.T) {
-	h := server.NewHandler(newStore(t), newMockCovers(), discardLog)
+	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, "")
 	w := do(t, h, "GET", "/healthz", nil)
 
 	if w.Code != http.StatusOK {
@@ -246,7 +246,7 @@ func TestHealthzWithScrape(t *testing.T) {
 	}
 	seedJSON(t, st, store.LastScrapePath(), scrapeData)
 
-	h := server.NewHandler(st, newMockCovers(), discardLog)
+	h := server.NewHandler(st, newMockCovers(), discardLog, "")
 	w := do(t, h, "GET", "/healthz", nil)
 
 	if w.Code != http.StatusOK {
@@ -267,7 +267,7 @@ func TestCoverServedFromDiskCache(t *testing.T) {
 	st.WriteAtomic(store.CoverPath("isbn:123", "large"), imgBytes) //nolint:errcheck
 
 	covers := newMockCovers()
-	h := server.NewHandler(st, covers, discardLog)
+	h := server.NewHandler(st, covers, discardLog, "")
 	w := do(t, h, "GET", "/covers/isbn:123/large", nil)
 
 	if w.Code != http.StatusOK {
@@ -287,7 +287,7 @@ func TestCoverNegativeCache(t *testing.T) {
 	st.WriteAtomic(store.CoverNotFoundPath("isbn:missing", "large"), []byte{}) //nolint:errcheck
 
 	covers := newMockCovers()
-	h := server.NewHandler(st, covers, discardLog)
+	h := server.NewHandler(st, covers, discardLog, "")
 	w := do(t, h, "GET", "/covers/isbn:missing/large", nil)
 
 	if w.Code != http.StatusNotFound {
@@ -305,7 +305,7 @@ func TestCoverFetchAndCache(t *testing.T) {
 	covers := newMockCovers()
 	covers.set("isbn:new", "large", imgBytes, "image/jpeg", nil)
 
-	h := server.NewHandler(st, covers, discardLog)
+	h := server.NewHandler(st, covers, discardLog, "")
 	w := do(t, h, "GET", "/covers/isbn:new/large", nil)
 
 	if w.Code != http.StatusOK {
@@ -330,7 +330,7 @@ func TestCoverUpstreamNotFound(t *testing.T) {
 	covers := newMockCovers()
 	covers.set("isbn:gone", "large", nil, "", upstream.ErrNotFound)
 
-	h := server.NewHandler(st, covers, discardLog)
+	h := server.NewHandler(st, covers, discardLog, "")
 	w := do(t, h, "GET", "/covers/isbn:gone/large", nil)
 
 	if w.Code != http.StatusNotFound {
@@ -346,7 +346,7 @@ func TestCoverUpstreamError(t *testing.T) {
 	covers := newMockCovers()
 	covers.set("isbn:err", "large", nil, "", errors.New("network error"))
 
-	h := server.NewHandler(newStore(t), covers, discardLog)
+	h := server.NewHandler(newStore(t), covers, discardLog, "")
 	w := do(t, h, "GET", "/covers/isbn:err/large", nil)
 
 	if w.Code != http.StatusBadGateway {
@@ -361,7 +361,7 @@ func TestCoverDedup(t *testing.T) {
 	covers := newMockCovers()
 	covers.set("isbn:dedup", "large", imgBytes, "image/jpeg", nil)
 
-	h := server.NewHandler(newStore(t), covers, discardLog)
+	h := server.NewHandler(newStore(t), covers, discardLog, "")
 
 	const goroutines = 40
 	var wg sync.WaitGroup
@@ -396,7 +396,7 @@ func TestMethodNotAllowed(t *testing.T) {
 	st := newStore(t)
 	seedJSON(t, st, store.PublisherIndexPath(), transform.PublisherIndex{})
 
-	h := server.NewHandler(st, newMockCovers(), discardLog)
+	h := server.NewHandler(st, newMockCovers(), discardLog, "")
 	w := do(t, h, "POST", "/publishers", nil)
 
 	// Go 1.22 mux returns 405 for wrong method on registered route.
@@ -407,7 +407,7 @@ func TestMethodNotAllowed(t *testing.T) {
 
 // TestUnknownRoute verifies unregistered paths return 404.
 func TestUnknownRoute(t *testing.T) {
-	h := server.NewHandler(newStore(t), newMockCovers(), discardLog)
+	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, "")
 	w := do(t, h, "GET", "/nonexistent", nil)
 	if w.Code != http.StatusNotFound {
 		t.Errorf("expected 404, got %d", w.Code)
@@ -420,7 +420,7 @@ func TestUnknownRoute(t *testing.T) {
 func TestStoreImplementsInterface(t *testing.T) {
 	// If this compiles, the interface is satisfied.
 	st := store.New(t.TempDir())
-	_ = server.NewHandler(st, newMockCovers(), discardLog)
+	_ = server.NewHandler(st, newMockCovers(), discardLog, "")
 	if st == nil {
 		t.Fatal("store should not be nil")
 	}

@@ -4,3 +4,8 @@
 
 # on-disk cache
 cache/
+
+# frontend
+web/node_modules/
+web/dist/
+web/.vite/
