@@ -5,6 +5,7 @@ package scraper
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -185,10 +186,12 @@ func (s *Scraper) scrapePublishers(ctx context.Context) ([]upstream.Publisher, e
 }
 
 // scrapeAllItems fans out one goroutine per publisher, bounded by s.workers.
+// After all publishers finish it writes per-type item indexes.
 func (s *Scraper) scrapeAllItems(ctx context.Context, publishers []upstream.Publisher, result *ScrapeResult) {
 	sem := make(chan struct{}, s.workers)
 	var wg sync.WaitGroup
 	var mu sync.Mutex
+	byType := map[string][]transform.Item{}
 
 	for _, pub := range publishers {
 		wg.Add(1)
@@ -197,26 +200,49 @@ func (s *Scraper) scrapeAllItems(ctx context.Context, publishers []upstream.Publ
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			n, err := s.scrapePublisherItems(ctx, pub.UUID)
+			if s.store.Exists(store.PublisherItemsSkipPath(pub.UUID)) {
+				s.log.Info("skipping publisher items (400 sentinel)", "publisher", pub.UUID)
+				return
+			}
+
+			n, items, err := s.scrapePublisherItems(ctx, pub.UUID)
 
 			mu.Lock()
 			defer mu.Unlock()
+			if errors.Is(err, upstream.ErrBadRequest) {
+				s.log.Warn("publisher returned 400; saving skip sentinel", "publisher", pub.UUID)
+				if werr := s.store.WriteAtomic(store.PublisherItemsSkipPath(pub.UUID), []byte{}); werr != nil {
+					s.log.Error("write skip sentinel", "publisher", pub.UUID, "err", werr)
+				}
+				result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", pub.UUID, err))
+				return
+			}
 			if err != nil {
 				s.log.Error("items scrape failed", "publisher", pub.UUID, "err", err)
 				result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", pub.UUID, err))
 				return
 			}
 			result.ItemCount += n
+			for _, item := range items {
+				if item.Type != "" {
+					byType[item.Type] = append(byType[item.Type], item)
+				}
+			}
 		}()
 	}
 	wg.Wait()
+
+	if err := s.writeTypeIndexes(byType); err != nil {
+		s.log.Error("write type indexes", "err", err)
+		result.Errors = append(result.Errors, "type indexes: "+err.Error())
+	}
 }
 
 // scrapePublisherItems fetches items for one publisher using delta detection:
 // upstream items are sorted -publication_date, so when we hit an identifier
 // already on disk we know all subsequent items are already stored.
-// Returns the number of newly written items.
-func (s *Scraper) scrapePublisherItems(ctx context.Context, publisherUUID string) (int, error) {
+// Returns the count of newly written items and their transformed representations.
+func (s *Scraper) scrapePublisherItems(ctx context.Context, publisherUUID string) (int, []transform.Item, error) {
 	var newItems []upstream.Item
 	var newRaw []json.RawMessage
 	stoppedEarly := false
@@ -225,12 +251,12 @@ func (s *Scraper) scrapePublisherItems(ctx context.Context, publisherUUID string
 	for pageURL != "" {
 		raw, page, err := s.client.FetchPublisherItems(ctx, pageURL)
 		if err != nil {
-			return 0, err
+			return 0, nil, err
 		}
 
 		rawResults, err := extractRawResults(raw)
 		if err != nil {
-			return 0, fmt.Errorf("extract item results: %w", err)
+			return 0, nil, fmt.Errorf("extract item results: %w", err)
 		}
 
 		for i, item := range page.Results {
@@ -264,10 +290,31 @@ func (s *Scraper) scrapePublisherItems(ctx context.Context, publisherUUID string
 		}
 	}
 
+	transformed := transform.Items(newItems).Items
 	if err := s.writeItemsList(publisherUUID, newItems, stoppedEarly); err != nil {
-		return len(newItems), err
+		return len(newItems), transformed, err
 	}
-	return len(newItems), nil
+	return len(newItems), transformed, nil
+}
+
+// writeTypeIndexes merges newly seen items into per-type index files.
+// On a delta scrape the new items are prepended to the existing list.
+func (s *Scraper) writeTypeIndexes(byType map[string][]transform.Item) error {
+	for typeName, newItems := range byType {
+		path := store.ItemTypeIndexPath(typeName)
+		items := newItems
+		if raw, err := s.store.Read(path); err == nil {
+			var prev transform.ItemList
+			if err := json.Unmarshal(raw, &prev); err == nil {
+				items = append(items, prev.Items...)
+			}
+		}
+		b, _ := json.Marshal(transform.ItemList{Items: items})
+		if err := s.store.WriteAtomic(path, b); err != nil {
+			return fmt.Errorf("write type index %s: %w", typeName, err)
+		}
+	}
+	return nil
 }
 
 // writeItemsList writes the publisher items list. On a delta scrape

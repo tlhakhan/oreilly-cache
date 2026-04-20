@@ -111,12 +111,16 @@ func PublisherItemsRawPath(uuid string) string {
 	return "publishers/by-uuid/" + uuid + "-items.raw.json"
 }
 
-func ItemPath(id string) string {
-	return "items/by-ourn/" + id + ".json"
+func PublisherItemsSkipPath(uuid string) string {
+	return "publishers/by-uuid/" + uuid + "-items.skip"
 }
 
-func ItemRawPath(id string) string {
-	return "items/by-ourn/" + id + ".raw.json"
+func ItemPath(ourn string) string {
+	return "items/by-ourn/" + ourn + ".json"
+}
+
+func ItemRawPath(ourn string) string {
+	return "items/by-ourn/" + ourn + ".raw.json"
 }
 
 func CoverPath(identifier, size string) string {
@@ -125,6 +129,10 @@ func CoverPath(identifier, size string) string {
 
 func CoverNotFoundPath(identifier, size string) string {
 	return "covers/" + identifier + "/" + size + ".404"
+}
+
+func ItemTypeIndexPath(typeName string) string {
+	return "items/by-type/" + typeName + ".json"
 }
 
 func LastScrapePath() string {

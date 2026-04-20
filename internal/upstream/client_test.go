@@ -58,7 +58,6 @@ func TestPublisherItemsURL(t *testing.T) {
 		"/api/v2/metadata/",
 		"publisher_uuid=uuid-123",
 		"limit=100",
-		"type=book",
 		"sort=-publication_date",
 		"language=en",
 	} {

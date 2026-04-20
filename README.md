@@ -4,7 +4,9 @@ A Go service that caches and transforms data from the O'Reilly Learning API. Act
 
 ## How it works
 
-On startup the scraper performs a full sync of all active, whitelisted publishers and their books, then repeats on a configurable interval. Only publishers with an `is_active: true`, `is_white_listed: true`, and a non-empty `url` field are synced. Subsequent scrapes are cheap: items are sorted by publication date descending, so paging stops as soon as a known item is encountered.
+On startup the scraper performs a full sync of all active, whitelisted publishers and their items, then repeats on a configurable interval. Only publishers with an `is_active: true`, `is_white_listed: true`, and a non-empty `url` field are synced. Subsequent scrapes are cheap: items are sorted by publication date descending, so paging stops as soon as a known item is encountered.
+
+Publishers whose item endpoint returns a 400 are skipped on all future scrapes. A zero-byte `.skip` sentinel is written to disk on first failure and checked before each scrape attempt.
 
 All upstream responses are stored byte-for-byte as `.raw.json` sidecars alongside transformed `.json` files. The HTTP server serves only transformed data; raw files are insurance against schema changes.
 
@@ -16,8 +18,9 @@ Cover images are fetched lazily on first request, written to disk, and served fr
 |--------|------|-------------|
 | `GET` | `/publishers` | List of all active publishers |
 | `GET` | `/publishers/{uuid}` | Single publisher |
-| `GET` | `/publishers/{uuid}/items` | All books for a publisher |
-| `GET` | `/items/{ourn}` | Single book |
+| `GET` | `/publishers/{uuid}/items` | All items for a publisher |
+| `GET` | `/items/{ourn}` | Single item |
+| `GET` | `/items/by-type/{type}` | All items of a given type (e.g. `book`, `video`, `audiobook`) |
 | `GET` | `/covers/{identifier}/{size}` | Cover image (lazy-cached) |
 | `GET` | `/healthz` | Liveness check + last scrape summary |
 
@@ -53,12 +56,15 @@ cache/
     by-uuid/
       {uuid}.json              # transformed publisher
       {uuid}.raw.json          # raw upstream response
-      {uuid}-items.json        # transformed book list
+      {uuid}-items.json        # transformed item list for publisher
       {uuid}-items.raw.json    # raw upstream response
+      {uuid}-items.skip        # 400 sentinel — publisher skipped on future scrapes
   items/
     by-ourn/
-      {ourn}.json              # transformed book
+      {ourn}.json              # transformed item
       {ourn}.raw.json          # raw upstream response
+    by-type/
+      {type}.json              # all items of that type (book, video, audiobook, …)
   covers/
     {identifier}/
       {size}.jpg               # cached cover image

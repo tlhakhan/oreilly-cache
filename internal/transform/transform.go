@@ -24,7 +24,9 @@ type PublisherIndex struct {
 type Item struct {
 	OURN            string   `json:"ourn"`
 	Name            string   `json:"name"`
+	Type            string   `json:"type,omitempty"`
 	PublicationDate string   `json:"publication_date"`
+	Popularity      float64  `json:"popularity"`
 	Authors         []string `json:"authors,omitempty"`
 	Subjects        []string `json:"subjects,omitempty"`
 	PublisherUUID   string   `json:"publisher_uuid,omitempty"`
@@ -58,7 +60,9 @@ func OneItem(item upstream.Item) Item {
 	return Item{
 		OURN:            item.OURN,
 		Name:            item.Name,
+		Type:            item.Type,
 		PublicationDate: item.PublicationDate,
+		Popularity:      item.Popularity,
 		Authors:         namesFromRaw(item.Authors),
 		Subjects:        namesFromRaw(item.Subjects),
 		PublisherUUID:   item.PublisherUUID,

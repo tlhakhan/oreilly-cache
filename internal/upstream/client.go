@@ -126,6 +126,9 @@ func (c *Client) get(ctx context.Context, rawURL string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusBadRequest {
+		return nil, fmt.Errorf("upstream: %s: HTTP 400: %w", rawURL, ErrBadRequest)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("upstream: %s: HTTP %d", rawURL, resp.StatusCode)
 	}

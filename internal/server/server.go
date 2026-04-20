@@ -51,7 +51,8 @@ func NewHandler(st storeReader, covers coverClient, log *slog.Logger) http.Handl
 	mux.HandleFunc("GET /publishers", s.handlePublisherIndex)
 	mux.HandleFunc("GET /publishers/{uuid}", s.handlePublisher)
 	mux.HandleFunc("GET /publishers/{uuid}/items", s.handlePublisherItems)
-	mux.HandleFunc("GET /items/{id}", s.handleItem)
+	mux.HandleFunc("GET /items/by-type/{type}", s.handleItemTypeIndex)
+	mux.HandleFunc("GET /items/{ourn}", s.handleItem)
 	mux.HandleFunc("GET /covers/{identifier}/{size}", s.handleCover)
 	mux.HandleFunc("GET /healthz", s.handleHealth)
 	return mux
@@ -70,7 +71,11 @@ func (s *server) handlePublisherItems(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) handleItem(w http.ResponseWriter, r *http.Request) {
-	s.serveJSONFile(w, r, store.ItemPath(r.PathValue("id")))
+	s.serveJSONFile(w, r, store.ItemPath(r.PathValue("ourn")))
+}
+
+func (s *server) handleItemTypeIndex(w http.ResponseWriter, r *http.Request) {
+	s.serveJSONFile(w, r, store.ItemTypeIndexPath(r.PathValue("type")))
 }
 
 func (s *server) handleHealth(w http.ResponseWriter, r *http.Request) {
