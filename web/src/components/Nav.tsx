@@ -1,43 +1,97 @@
 import { Link, useLocation } from '@tanstack/react-router';
+import { useRef, useState } from 'react';
 
-const TYPES = ['book', 'video', 'audiobook', 'article'] as const;
+const TYPES = [
+  { value: 'book', label: 'Books' },
+  { value: 'learning-plan', label: 'Learning Plans' },
+  { value: 'article', label: 'Articles' },
+  { value: 'video', label: 'Videos' },
+  { value: 'audiobook', label: 'Audiobooks' },
+  { value: 'live-event-series', label: 'Live Event Series' },
+  { value: 'scenario', label: 'Scenarios' },
+  { value: 'certs-practice-exam', label: 'Certs Practice Exams' },
+] as const;
 
 export function Nav() {
   const location = useLocation();
   const params = new URLSearchParams(location.search);
   const activeType = params.get('type') ?? 'book';
   const onBrowse = location.pathname === '/browse';
+  const onPublishers = location.pathname.startsWith('/publishers');
+  const [browseOpen, setBrowseOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function openMenu() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setBrowseOpen(true);
+  }
+
+  function scheduleClose() {
+    closeTimer.current = setTimeout(() => setBrowseOpen(false), 500);
+  }
 
   return (
-    <nav className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b border-gray-800 bg-gray-950 px-4">
-      <Link to="/" className="shrink-0 text-sm font-semibold text-white">
-        oreilly-cache
+    <nav className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b border-gray-200 bg-white px-4">
+      <Link
+        to="/publishers"
+        className="shrink-0 text-sm font-semibold text-gray-900"
+      >
+        O'Reilly Cache
       </Link>
 
       <div className="flex flex-1 items-center gap-1">
-        {TYPES.map((type) => (
-          <Link
-            key={type}
-            to="/browse"
-            search={{ type, sort: 'date' }}
+        <Link
+          to="/publishers"
+          className={[
+            'rounded px-3 py-1 text-xs font-medium transition-colors',
+            onPublishers
+              ? 'bg-gray-200 text-gray-900'
+              : 'text-gray-500 hover:text-gray-900',
+          ].join(' ')}
+        >
+          Publishers
+        </Link>
+
+        <div
+          role="menu"
+          className="relative"
+          onMouseEnter={openMenu}
+          onMouseLeave={scheduleClose}
+        >
+          <button
+            type="button"
             className={[
-              'rounded px-3 py-1 text-xs font-medium capitalize transition-colors',
-              onBrowse && activeType === type
-                ? 'bg-gray-700 text-white'
-                : 'text-gray-400 hover:text-white',
+              'rounded px-3 py-1 text-xs font-medium transition-colors',
+              onBrowse
+                ? 'bg-gray-200 text-gray-900'
+                : 'text-gray-500 hover:text-gray-900',
             ].join(' ')}
           >
-            {type}
-          </Link>
-        ))}
-      </div>
+            Browse
+          </button>
 
-      {/* Search — non-functional stub, wired in a later step */}
-      <input
-        type="search"
-        placeholder="Search…"
-        className="w-48 shrink-0 rounded bg-gray-800 px-3 py-1.5 text-xs text-gray-300 placeholder-gray-600 outline-none"
-      />
+          {browseOpen && (
+            <div className="absolute left-0 top-full w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+              {TYPES.map(({ value, label }) => (
+                <Link
+                  key={value}
+                  to="/browse"
+                  search={{ type: value, sort: 'date' }}
+                  onClick={() => setBrowseOpen(false)}
+                  className={[
+                    'block px-4 py-1.5 text-xs transition-colors',
+                    onBrowse && activeType === value
+                      ? 'bg-gray-100 font-medium text-gray-900'
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900',
+                  ].join(' ')}
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </nav>
   );
 }

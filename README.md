@@ -12,11 +12,16 @@ All upstream responses are stored byte-for-byte as `.raw.json` sidecars alongsid
 
 Cover images are fetched lazily on first request, written to disk, and served from cache thereafter. Concurrent requests for the same uncached cover are deduplicated. Upstream 404s are negative-cached so the upstream is never hit twice for a missing cover.
 
-After each full scrape cycle, items are grouped by type and written to per-type index files under `items/by-type/`. Delta scrapes merge newly discovered items into the existing index.
+After each full scrape cycle, items are grouped by type and written to per-type index files under `items/by-type/`. Delta scrapes merge newly discovered items into the existing index. The publisher index is also updated with per-publisher item counts after each cycle.
 
 ## Frontend
 
-The `web/` directory contains a React SPA built with Vite 8, TanStack Router, TanStack Query, TanStack Virtual, and Dexie (IndexedDB). It fetches data from the Go service's JSON API, caches responses locally, and supports browsing by type, sorting, and liking items.
+The `web/` directory contains a React SPA built with Vite 8, TanStack Router, TanStack Query, TanStack Virtual, and Dexie (IndexedDB). It fetches data from the Go service's JSON API and caches responses locally in IndexedDB.
+
+**Views:**
+- **Publishers** (default) — alphabetical grid of all publishers with item counts; clicking a publisher shows their items
+- **Browse** — dropdown menu of content types (Books, Learning Plans, Articles, Videos, Audiobooks, Live Event Series, Scenarios, Certs Practice Exams); each opens a virtualised cover grid sorted by date or popularity
+- Clicking any item opens its O'Reilly library page in a new tab
 
 Run both together with:
 
@@ -24,19 +29,23 @@ Run both together with:
 make run-with-web
 ```
 
-This builds the frontend and starts the Go service with `-static-dir ./web/dist`. The SPA is served at `/`; all `/publishers`, `/items/`, and `/covers/` routes continue to serve JSON as before.
+This builds the frontend and starts the Go service with `-static-dir ./web/dist`. The SPA is served at `/`; all API routes are under `/api/`.
 
 ## API
 
+All API routes are prefixed with `/api/`.
+
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/publishers` | List of all active publishers |
-| `GET` | `/publishers/{uuid}` | Single publisher |
-| `GET` | `/publishers/{uuid}/items` | All items for a publisher |
-| `GET` | `/items/{ourn}` | Single item |
-| `GET` | `/items/by-type/{type}` | All items of a given type (e.g. `book`, `video`, `audiobook`, `article`) |
-| `GET` | `/covers/{identifier}/{size}` | Cover image (lazy-cached) |
-| `GET` | `/healthz` | Liveness check + last scrape summary |
+| `GET` | `/api/publishers` | List of all active publishers (includes `item_count`) |
+| `GET` | `/api/publishers/{uuid}` | Single publisher |
+| `GET` | `/api/publishers/{uuid}/items` | All items for a publisher |
+| `GET` | `/api/items/{ourn}` | Single item |
+| `GET` | `/api/items/by-type/{type}` | All items of a given type |
+| `GET` | `/api/covers/{identifier}/{size}` | Cover image (lazy-cached) |
+| `GET` | `/api/healthz` | Liveness check + last scrape summary |
+
+Supported item types: `book`, `learning-plan`, `article`, `video`, `audiobook`, `live-event-series`, `scenario`, `certs-practice-exam`.
 
 All JSON endpoints support conditional GETs via `If-Modified-Since` / `ETag`.
 
@@ -65,7 +74,7 @@ make clean          # remove compiled binaries
 
 # Frontend
 make web-install    # npm install
-make web-dev        # start Vite dev server (proxies API to :8080)
+make web-dev        # start Vite dev server (proxies /api to :8080)
 make web-build      # production build → web/dist/
 make web-check      # biome lint + tsc + vitest
 
@@ -79,7 +88,7 @@ make run-with-web   # build frontend then run service with -static-dir ./web/dis
 ```
 cache/
   publishers/
-    index.json                 # transformed publisher list
+    index.json                 # transformed publisher list (with item counts)
     by-uuid/
       {uuid}.json              # transformed publisher
       {uuid}.raw.json          # raw upstream response
@@ -91,7 +100,7 @@ cache/
       {ourn}.json              # transformed item
       {ourn}.raw.json          # raw upstream response
     by-type/
-      {type}.json              # all items of that type (book, video, audiobook, …)
+      {type}.json              # all items of that type
   covers/
     {identifier}/
       {size}.jpg               # cached cover image

@@ -2,44 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { createRoute } from '@tanstack/react-router';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { z } from 'zod';
-import { fetchItemsByType } from '../api/fetcher';
-import type { Item } from '../api/types';
+import { fetchPublisherItems, fetchPublishers } from '../api/fetcher';
 import { ItemCard } from '../components/ItemCard';
 import { rootRoute } from './root';
 
-// ---------------------------------------------------------------------------
-// Search params
-// ---------------------------------------------------------------------------
-
-const searchSchema = z.object({
-  type: z
-    .enum([
-      'book',
-      'learning-plan',
-      'article',
-      'video',
-      'audiobook',
-      'live-event-series',
-      'scenario',
-      'certs-practice-exam',
-    ])
-    .default('book')
-    .catch('book'),
-  sort: z.enum(['date', 'popular']).default('date').catch('date'),
-  publisher: z.string().optional(),
-});
-
-export const browseRoute = createRoute({
+export const publisherRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/browse',
-  validateSearch: searchSchema,
-  component: Browse,
+  path: '/publishers/$uuid',
+  component: Publisher,
 });
-
-// ---------------------------------------------------------------------------
-// Hooks
-// ---------------------------------------------------------------------------
 
 function getColumns(): number {
   const w = window.innerWidth;
@@ -59,7 +30,6 @@ function useColumns(): number {
   return cols;
 }
 
-// Estimate row height from current column count and viewport width
 function useRowHeight(cols: number): number {
   const [height, setHeight] = useState(380);
   useEffect(() => {
@@ -71,30 +41,14 @@ function useRowHeight(cols: number): number {
   return height;
 }
 
-// ---------------------------------------------------------------------------
-// Utilities
-// ---------------------------------------------------------------------------
-
 function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
 }
 
-function sortItems(items: Item[], sort: 'date' | 'popular'): Item[] {
-  return [...items].sort((a, b) =>
-    sort === 'popular'
-      ? b.popularity - a.popularity
-      : b.publication_date.localeCompare(a.publication_date),
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
-function Browse() {
-  const { type, sort, publisher } = browseRoute.useSearch();
+function Publisher() {
+  const { uuid } = publisherRoute.useParams();
   const cols = useColumns();
   const rowHeight = useRowHeight(cols);
   const listRef = useRef<HTMLDivElement>(null);
@@ -104,16 +58,18 @@ function Browse() {
     setScrollMargin(listRef.current?.offsetTop ?? 0);
   }, []);
 
+  const { data: publishers = [] } = useQuery({
+    queryKey: ['publishers'],
+    queryFn: fetchPublishers,
+  });
+  const publisher = publishers.find((p) => p.uuid === uuid);
+
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ['items', type],
-    queryFn: () => fetchItemsByType(type),
+    queryKey: ['publisher-items', uuid],
+    queryFn: () => fetchPublisherItems(uuid),
   });
 
-  const rows = useMemo(() => {
-    let list = sortItems(items, sort);
-    if (publisher) list = list.filter((it) => it.publisher_uuid === publisher);
-    return chunk(list, cols);
-  }, [items, sort, publisher, cols]);
+  const rows = useMemo(() => chunk(items, cols), [items, cols]);
 
   const virtualizer = useWindowVirtualizer({
     count: rows.length,
@@ -131,8 +87,11 @@ function Browse() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
+    <div className="min-h-screen bg-gray-50">
       <div ref={listRef} className="mx-auto max-w-screen-2xl px-4 py-6">
+        <h1 className="mb-6 text-xl font-semibold text-gray-900">
+          {publisher?.name ?? uuid}
+        </h1>
         <div
           className="relative"
           style={{ height: `${virtualizer.getTotalSize()}px` }}

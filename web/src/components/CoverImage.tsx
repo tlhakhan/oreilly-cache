@@ -21,7 +21,7 @@ function Placeholder({ ourn, title }: Props) {
     <svg
       viewBox="0 0 2 3"
       xmlns="http://www.w3.org/2000/svg"
-      className="h-full w-full"
+      className="h-full w-full drop-shadow-md"
       aria-hidden="true"
     >
       <rect width="2" height="3" fill={hashToHsl(ourn)} />
@@ -47,12 +47,12 @@ export function CoverImage({ ourn, title }: Props) {
 
   return (
     <img
-      src={`/covers/${encodeOurn(ourn)}/400w`}
+      src={`/api/covers/${encodeOurn(ourn)}/400w`}
       alt={title}
       loading="lazy"
       decoding="async"
       onError={() => setFailed(true)}
-      className="h-full w-full object-cover"
+      className="h-full w-full object-contain drop-shadow-md"
     />
   );
 }

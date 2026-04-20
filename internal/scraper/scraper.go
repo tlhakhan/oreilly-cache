@@ -113,6 +113,7 @@ func (s *Scraper) Scrape(ctx context.Context) error {
 	result.PublisherCount = len(publishers)
 
 	s.scrapeAllItems(ctx, publishers, result)
+	s.updatePublisherCounts(publishers)
 
 	result.FinishedAt = time.Now()
 	s.writeResult(result)
@@ -334,6 +335,27 @@ func (s *Scraper) writeItemsList(publisherUUID string, newItems []upstream.Item,
 
 	b, _ := json.Marshal(transform.ItemList{Items: items})
 	return s.store.WriteAtomic(store.PublisherItemsPath(publisherUUID), b)
+}
+
+// updatePublisherCounts re-reads each publisher's items file to get the total
+// count and rewrites the publisher index with those counts populated.
+// Called after scrapeAllItems so counts reflect the full (merged) item list.
+func (s *Scraper) updatePublisherCounts(publishers []upstream.Publisher) {
+	updated := make([]transform.Publisher, 0, len(publishers))
+	for _, pub := range publishers {
+		p := transform.OnePublisher(pub)
+		if raw, err := s.store.Read(store.PublisherItemsPath(pub.UUID)); err == nil {
+			var list transform.ItemList
+			if json.Unmarshal(raw, &list) == nil {
+				p.ItemCount = len(list.Items)
+			}
+		}
+		updated = append(updated, p)
+	}
+	b, _ := json.Marshal(transform.PublisherIndex{Publishers: updated})
+	if err := s.store.WriteAtomic(store.PublisherIndexPath(), b); err != nil {
+		s.log.Error("update publisher counts", "err", err)
+	}
 }
 
 func (s *Scraper) writeResult(result *ScrapeResult) {

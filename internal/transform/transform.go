@@ -10,9 +10,10 @@ import (
 
 // Publisher is the shape served from GET /publishers/{uuid}.
 type Publisher struct {
-	UUID string `json:"uuid"`
-	Name string `json:"name"`
-	Slug string `json:"slug,omitempty"`
+	UUID      string `json:"uuid"`
+	Name      string `json:"name"`
+	Slug      string `json:"slug,omitempty"`
+	ItemCount int    `json:"item_count,omitempty"`
 }
 
 // PublisherIndex is the shape served from GET /publishers.

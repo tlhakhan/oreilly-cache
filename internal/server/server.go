@@ -50,13 +50,13 @@ func NewHandler(st storeReader, covers coverClient, log *slog.Logger, staticDir 
 	s := &server{store: st, covers: covers, log: log, start: time.Now()}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /publishers", s.handlePublisherIndex)
-	mux.HandleFunc("GET /publishers/{uuid}", s.handlePublisher)
-	mux.HandleFunc("GET /publishers/{uuid}/items", s.handlePublisherItems)
-	mux.HandleFunc("GET /items/by-type/{type}", s.handleItemTypeIndex)
-	mux.HandleFunc("GET /items/{ourn}", s.handleItem)
-	mux.HandleFunc("GET /covers/{identifier}/{size}", s.handleCover)
-	mux.HandleFunc("GET /healthz", s.handleHealth)
+	mux.HandleFunc("GET /api/publishers", s.handlePublisherIndex)
+	mux.HandleFunc("GET /api/publishers/{uuid}", s.handlePublisher)
+	mux.HandleFunc("GET /api/publishers/{uuid}/items", s.handlePublisherItems)
+	mux.HandleFunc("GET /api/items/by-type/{type}", s.handleItemTypeIndex)
+	mux.HandleFunc("GET /api/items/{ourn}", s.handleItem)
+	mux.HandleFunc("GET /api/covers/{identifier}/{size}", s.handleCover)
+	mux.HandleFunc("GET /api/healthz", s.handleHealth)
 	if staticDir != "" {
 		mux.Handle("/", spaHandler(staticDir))
 	}

@@ -8,7 +8,7 @@ const queryClient = new QueryClient({
   },
 });
 
-export const Route = createRootRoute({
+export const rootRoute = createRootRoute({
   component: () => (
     <QueryClientProvider client={queryClient}>
       <Nav />

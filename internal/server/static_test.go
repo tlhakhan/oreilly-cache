@@ -83,7 +83,7 @@ func TestSPAAPIRouteTakesPrecedence(t *testing.T) {
 
 	h := server.NewHandler(st, newMockCovers(), discardLog, dir)
 
-	w := do(t, h, "GET", "/publishers", nil)
+	w := do(t, h, "GET", "/api/publishers", nil)
 	if w.Code != http.StatusOK {
 		t.Fatalf("status: got %d, want 200", w.Code)
 	}

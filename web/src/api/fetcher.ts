@@ -72,7 +72,7 @@ export function encodeOurn(ourn: string): string {
 // --- Wired endpoint helpers ---
 
 export function fetchPublishers(): Promise<Publisher[]> {
-  const endpoint = '/publishers';
+  const endpoint = '/api/publishers';
   return fetchCached({
     url: endpoint,
     endpoint,
@@ -87,7 +87,7 @@ export function fetchPublishers(): Promise<Publisher[]> {
 }
 
 export function fetchItemsByType(type: string): Promise<Item[]> {
-  const endpoint = `/items/by-type/${type}`;
+  const endpoint = `/api/items/by-type/${type}`;
   return fetchCached({
     url: endpoint,
     endpoint,
@@ -102,7 +102,7 @@ export function fetchItemsByType(type: string): Promise<Item[]> {
 }
 
 export function fetchPublisherItems(publisherUuid: string): Promise<Item[]> {
-  const endpoint = `/publishers/${publisherUuid}/items`;
+  const endpoint = `/api/publishers/${publisherUuid}/items`;
   return fetchCached({
     url: endpoint,
     endpoint,

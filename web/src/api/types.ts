@@ -1,11 +1,21 @@
 import { z } from 'zod';
 
-export const ItemTypeSchema = z.enum(['book', 'video', 'audiobook', 'article']);
+export const ItemTypeSchema = z.enum([
+  'book',
+  'learning-plan',
+  'article',
+  'video',
+  'audiobook',
+  'live-event-series',
+  'scenario',
+  'certs-practice-exam',
+]);
 export type ItemType = z.infer<typeof ItemTypeSchema>;
 
 export const PublisherSchema = z.object({
   uuid: z.string(),
   name: z.string(),
+  item_count: z.number().optional(),
 });
 export type Publisher = z.infer<typeof PublisherSchema>;
 
