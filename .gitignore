@@ -1,14 +1,6 @@
 # build output
-/oreilly-cache
+/oreilly-cache-linux-amd64
+/oreilly-cache-linux-arm64
 
 # on-disk cache
 cache/
-
-# legacy JS artefacts
-publishers.json
-books.json
-node_modules/
-package.json
-package-lock.json
-seed.js
-download_cover.sh
