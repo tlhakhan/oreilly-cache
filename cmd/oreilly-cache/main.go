@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"flag"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,6 +13,8 @@ import (
 	"path/filepath"
 	"syscall"
 	"time"
+
+	webui "oreilly-cache/web"
 
 	"oreilly-cache/internal/scraper"
 	"oreilly-cache/internal/server"
@@ -28,11 +31,12 @@ func main() {
 	pageSize        := flag.Int("page-size", 100, "items per upstream page request")
 	httpTimeout     := flag.Duration("http-timeout", 30*time.Second, "upstream HTTP client timeout per request")
 	shutdownTimeout := flag.Duration("shutdown-timeout", 10*time.Second, "graceful shutdown deadline")
-	staticDir       := flag.String("static-dir", "", "optional: serve SPA static files from this directory")
+	staticDir       := flag.String("static-dir", "", "optional: override embedded SPA with files from this directory (development)")
 	flag.Parse()
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
+	var staticFS fs.FS
 	if *staticDir != "" {
 		absDir, err := filepath.Abs(*staticDir)
 		if err != nil {
@@ -43,10 +47,18 @@ func main() {
 			log.Error("static-dir: directory not found", "dir", absDir)
 			os.Exit(1)
 		}
-		indexPath := filepath.Join(absDir, "index.html")
-		_, indexErr := os.Stat(indexPath)
-		log.Info("static files enabled", "dir", absDir, "index_found", indexErr == nil)
-		*staticDir = absDir
+		_, indexErr := os.Stat(filepath.Join(absDir, "index.html"))
+		log.Info("static files: using directory", "dir", absDir, "index_found", indexErr == nil)
+		staticFS = os.DirFS(absDir)
+	} else {
+		sub, err := fs.Sub(webui.FS, "dist")
+		if err != nil {
+			log.Error("embedded static files unavailable", "err", err)
+			os.Exit(1)
+		}
+		_, indexErr := fs.Stat(sub, "index.html")
+		log.Info("static files: using embedded dist", "index_found", indexErr == nil)
+		staticFS = sub
 	}
 
 	st := store.New(*cacheDir)
@@ -57,7 +69,7 @@ func main() {
 		PageSize: *pageSize,
 	})
 
-	handler := server.NewHandler(st, cl, log, *staticDir)
+	handler := server.NewHandler(st, cl, log, staticFS)
 	srv := &http.Server{
 		Addr:         *listenAddr,
 		Handler:      handler,

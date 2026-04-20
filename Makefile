@@ -31,7 +31,7 @@ web-build:
 web-check:
 	cd web && npx biome check . && npx tsc --noEmit && npx vitest run
 
-build-all: build web-build
+build-all: web-build build
 
 run-with-web: web-build
-	go run ./cmd/oreilly-cache/... -static-dir ./web/dist
+	go run ./cmd/oreilly-cache/...

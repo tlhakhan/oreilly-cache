@@ -32,7 +32,7 @@ func buildStaticDir(t *testing.T) string {
 
 func TestSPAServesRoot(t *testing.T) {
 	dir := buildStaticDir(t)
-	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, dir)
+	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, os.DirFS(dir))
 
 	w := do(t, h, "GET", "/", nil)
 	if w.Code != http.StatusOK {
@@ -45,7 +45,7 @@ func TestSPAServesRoot(t *testing.T) {
 
 func TestSPAAssetLongCache(t *testing.T) {
 	dir := buildStaticDir(t)
-	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, dir)
+	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, os.DirFS(dir))
 
 	w := do(t, h, "GET", "/assets/app.abc123.js", nil)
 	if w.Code != http.StatusOK {
@@ -59,7 +59,7 @@ func TestSPAAssetLongCache(t *testing.T) {
 
 func TestSPAFallbackNoCacheHeader(t *testing.T) {
 	dir := buildStaticDir(t)
-	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, dir)
+	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, os.DirFS(dir))
 
 	// /browse doesn't exist as a file — SPA fallback must serve index.html.
 	w := do(t, h, "GET", "/browse?type=book", nil)
@@ -81,7 +81,7 @@ func TestSPAAPIRouteTakesPrecedence(t *testing.T) {
 	// Seed the publisher index so /publishers returns 200 with JSON.
 	seedJSON(t, st, "publishers/index.json", map[string]any{"publishers": []any{}})
 
-	h := server.NewHandler(st, newMockCovers(), discardLog, dir)
+	h := server.NewHandler(st, newMockCovers(), discardLog, os.DirFS(dir))
 
 	w := do(t, h, "GET", "/api/publishers", nil)
 	if w.Code != http.StatusOK {
@@ -95,7 +95,7 @@ func TestSPAAPIRouteTakesPrecedence(t *testing.T) {
 
 func TestSPAPathTraversalBlocked(t *testing.T) {
 	dir := buildStaticDir(t)
-	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, dir)
+	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, os.DirFS(dir))
 
 	w := do(t, h, "GET", "/../../../etc/passwd", nil)
 	// Must not escape staticDir — expect 403 or 404, never 200.
@@ -106,7 +106,7 @@ func TestSPAPathTraversalBlocked(t *testing.T) {
 
 func TestSPADisabledWhenFlagEmpty(t *testing.T) {
 	// With no staticDir, / should return 404 (no route registered).
-	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, "")
+	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, nil)
 
 	w := do(t, h, "GET", "/", nil)
 	if w.Code != http.StatusNotFound {
@@ -117,7 +117,7 @@ func TestSPADisabledWhenFlagEmpty(t *testing.T) {
 func TestSPAMissingIndexHTML(t *testing.T) {
 	// Static dir exists but no index.html — fallback should 404, not panic.
 	dir := t.TempDir()
-	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, dir)
+	h := server.NewHandler(newStore(t), newMockCovers(), discardLog, os.DirFS(dir))
 
 	w := do(t, h, "GET", "/browse", nil)
 	if w.Code != http.StatusNotFound {

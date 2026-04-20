@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
@@ -44,9 +45,9 @@ type server struct {
 }
 
 // NewHandler wires routes and returns an http.Handler ready to serve.
-// If staticDir is non-empty, the SPA handler is registered as a catchall after
+// If staticFS is non-nil, the SPA handler is registered as a catchall after
 // all API routes so that client-side routes are served index.html on direct load.
-func NewHandler(st storeReader, covers coverClient, log *slog.Logger, staticDir string) http.Handler {
+func NewHandler(st storeReader, covers coverClient, log *slog.Logger, staticFS fs.FS) http.Handler {
 	s := &server{store: st, covers: covers, log: log, start: time.Now()}
 
 	mux := http.NewServeMux()
@@ -57,8 +58,8 @@ func NewHandler(st storeReader, covers coverClient, log *slog.Logger, staticDir 
 	mux.HandleFunc("GET /api/items/{ourn}", s.handleItem)
 	mux.HandleFunc("GET /api/covers/{identifier}/{size}", s.handleCover)
 	mux.HandleFunc("GET /api/healthz", s.handleHealth)
-	if staticDir != "" {
-		mux.Handle("/", spaHandler(staticDir))
+	if staticFS != nil {
+		mux.Handle("/", spaHandler(staticFS))
 	}
 	return mux
 }
