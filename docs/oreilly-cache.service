@@ -1,0 +1,32 @@
+[Unit]
+Description=oreilly-cache - O'Reilly Learning API cache and SPA server
+Documentation=https://github.com/tlhakhan/oreilly-cache
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=oreilly-cache
+Group=oreilly-cache
+
+ExecStart=/usr/local/bin/oreilly-cache \
+  -cache-dir /var/lib/oreilly-cache \
+  -listen :8080 \
+  -scrape-interval 120h \
+  -workers 5 \
+  -page-size 100 \
+  -http-timeout 30s \
+  -shutdown-timeout 10s
+
+Restart=on-failure
+RestartSec=5s
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/oreilly-cache
+
+[Install]
+WantedBy=multi-user.target
