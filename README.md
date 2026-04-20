@@ -1,6 +1,6 @@
 # oreilly-cache
 
-A Go service that caches and transforms data from the O'Reilly Learning API. Acts as a faster, shape-controlled frontend over slow upstream endpoints, with periodic background scraping and on-disk storage.
+A Go service that caches and transforms data from the O'Reilly Learning API. Acts as a faster, shape-controlled frontend over slow upstream endpoints, with periodic background scraping and on-disk storage. Optionally serves a React SPA for browsing the cached content.
 
 ## How it works
 
@@ -12,6 +12,20 @@ All upstream responses are stored byte-for-byte as `.raw.json` sidecars alongsid
 
 Cover images are fetched lazily on first request, written to disk, and served from cache thereafter. Concurrent requests for the same uncached cover are deduplicated. Upstream 404s are negative-cached so the upstream is never hit twice for a missing cover.
 
+After each full scrape cycle, items are grouped by type and written to per-type index files under `items/by-type/`. Delta scrapes merge newly discovered items into the existing index.
+
+## Frontend
+
+The `web/` directory contains a React SPA built with Vite 8, TanStack Router, TanStack Query, TanStack Virtual, and Dexie (IndexedDB). It fetches data from the Go service's JSON API, caches responses locally, and supports browsing by type, sorting, and liking items.
+
+Run both together with:
+
+```sh
+make run-with-web
+```
+
+This builds the frontend and starts the Go service with `-static-dir ./web/dist`. The SPA is served at `/`; all `/publishers`, `/items/`, and `/covers/` routes continue to serve JSON as before.
+
 ## API
 
 | Method | Path | Description |
@@ -20,7 +34,7 @@ Cover images are fetched lazily on first request, written to disk, and served fr
 | `GET` | `/publishers/{uuid}` | Single publisher |
 | `GET` | `/publishers/{uuid}/items` | All items for a publisher |
 | `GET` | `/items/{ourn}` | Single item |
-| `GET` | `/items/by-type/{type}` | All items of a given type (e.g. `book`, `video`, `audiobook`) |
+| `GET` | `/items/by-type/{type}` | All items of a given type (e.g. `book`, `video`, `audiobook`, `article`) |
 | `GET` | `/covers/{identifier}/{size}` | Cover image (lazy-cached) |
 | `GET` | `/healthz` | Liveness check + last scrape summary |
 
@@ -38,13 +52,26 @@ All JSON endpoints support conditional GETs via `If-Modified-Since` / `ETag`.
 | `-page-size` | `100` | Items per upstream page request |
 | `-http-timeout` | `30s` | Per-request upstream HTTP timeout |
 | `-shutdown-timeout` | `10s` | Graceful shutdown deadline |
+| `-static-dir` | *(empty)* | Serve SPA static files from this directory; if unset, API-only mode |
 
 ## Development
 
 ```sh
-make build   # compile binary
-make test    # run all tests
-make run     # run with defaults
+# Go service
+make build          # compile linux/amd64 and linux/arm64 binaries
+make test           # run all Go tests
+make run            # run with defaults (API only)
+make clean          # remove compiled binaries
+
+# Frontend
+make web-install    # npm install
+make web-dev        # start Vite dev server (proxies API to :8080)
+make web-build      # production build → web/dist/
+make web-check      # biome lint + tsc + vitest
+
+# Combined
+make build-all      # build Go binaries + frontend
+make run-with-web   # build frontend then run service with -static-dir ./web/dist
 ```
 
 ## On-disk layout
