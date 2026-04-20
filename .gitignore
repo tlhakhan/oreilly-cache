@@ -1,3 +1,14 @@
+# build output
+/oreilly-cache
+
+# on-disk cache
+cache/
+
+# legacy JS artefacts
 publishers.json
 books.json
-node_modules
+node_modules/
+package.json
+package-lock.json
+seed.js
+download_cover.sh

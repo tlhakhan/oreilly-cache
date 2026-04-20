@@ -1,0 +1,15 @@
+{
+  "ourn": "urn:orm:book:9781098128944",
+  "name": "Learning Go, 2nd Edition",
+  "publication_date": "2023-03-01",
+  "authors": [
+    {"name": "Jon Bodner", "uuid": "author-uuid-1", "url": "/api/v1/authors/author-uuid-1/"}
+  ],
+  "subjects": [
+    {"name": "Go", "uuid": "subj-uuid-1"},
+    {"name": "Programming", "uuid": "subj-uuid-2"}
+  ],
+  "publisher_uuid": "aa1e312d-b9f6-46fa-9a82-e7e4b41d5c72",
+  "description": "A comprehensive guide to Go programming.",
+  "cover_image_url": "https://learning.oreilly.com/library/cover/9781098128944/large/"
+}

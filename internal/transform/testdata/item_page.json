@@ -1,0 +1,22 @@
+{
+  "count": 2,
+  "next": null,
+  "results": [
+    {
+      "ourn": "urn:orm:book:9781098128944",
+      "name": "Learning Go, 2nd Edition",
+      "publication_date": "2023-03-01",
+      "authors": [{"name": "Jon Bodner", "uuid": "a1"}],
+      "subjects": [{"name": "Go", "uuid": "s1"}],
+      "publisher_uuid": "aa1e312d-b9f6-46fa-9a82-e7e4b41d5c72"
+    },
+    {
+      "ourn": "urn:orm:book:9781718502550",
+      "name": "The Linux Command Line, 2nd Edition",
+      "publication_date": "2019-09-01",
+      "authors": [{"name": "William E. Shotts", "uuid": "a2"}],
+      "subjects": [{"name": "Linux", "uuid": "s2"}, {"name": "Shell", "uuid": "s3"}],
+      "publisher_uuid": "bb2f423e-c0a7-57gb-ab93-f8f5c52e6d83"
+    }
+  ]
+}
