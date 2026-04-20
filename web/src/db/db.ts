@@ -22,3 +22,9 @@ class OReillyCacheDB extends Dexie {
 }
 
 export const db = new OReillyCacheDB();
+
+// If the DB is in a bad state (e.g. failed schema migration on Safari),
+// delete it and reload so the app self-heals rather than hanging forever.
+db.open().catch(() => {
+  db.delete().finally(() => window.location.reload());
+});
