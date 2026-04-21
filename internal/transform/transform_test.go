@@ -148,7 +148,7 @@ func TestOneItem(t *testing.T) {
 				PublicationDate: "2024-01-01",
 				Authors:         json.RawMessage(`[{"name":"Alice","uuid":"a1"},{"name":"Bob","uuid":"a2"}]`),
 				Subjects:        json.RawMessage(`[{"name":"Go","uuid":"s1"}]`),
-				PublisherUUID:   "pub-1",
+				Publishers:      []upstream.ItemPublisher{{UUID: "pub-1"}},
 			},
 			check: func(t *testing.T, got transform.Item) {
 				if got.OURN != "urn:orm:book:123" {

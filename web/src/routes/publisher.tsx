@@ -12,6 +12,17 @@ export const publisherRoute = createRoute({
   component: Publisher,
 });
 
+const TYPE_LABELS = [
+  { value: 'book',                label: 'Books' },
+  { value: 'video',               label: 'Videos' },
+  { value: 'article',             label: 'Articles' },
+  { value: 'audiobook',           label: 'Audiobooks' },
+  { value: 'learning-plan',       label: 'Learning Plans' },
+  { value: 'live-event-series',   label: 'Live Event Series' },
+  { value: 'scenario',            label: 'Scenarios' },
+  { value: 'certs-practice-exam', label: 'Certs Practice Exams' },
+] as const;
+
 function getColumns(): number {
   const w = window.innerWidth;
   if (w >= 1280) return 6;
@@ -71,6 +82,12 @@ function Publisher() {
 
   const rows = useMemo(() => chunk(items, cols), [items, cols]);
 
+  const typeCounts = useMemo(() => {
+    const counts: Partial<Record<string, number>> = {};
+    for (const item of items) counts[item.type] = (counts[item.type] ?? 0) + 1;
+    return counts;
+  }, [items]);
+
   const virtualizer = useWindowVirtualizer({
     count: rows.length,
     estimateSize: () => rowHeight,
@@ -89,9 +106,26 @@ function Publisher() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div ref={listRef} className="mx-auto max-w-screen-2xl px-4 py-6">
-        <h1 className="mb-6 text-xl font-semibold text-gray-900">
+        <h1 className="text-xl font-semibold text-gray-900">
           {publisher?.name ?? uuid}
+          {items.length > 0 && (
+            <span className="ml-2 text-base font-normal text-gray-400">
+              ({items.length.toLocaleString()})
+            </span>
+          )}
         </h1>
+        {Object.keys(typeCounts).length > 0 && (
+          <div className="mt-2 mb-6 flex flex-wrap gap-1.5">
+            {TYPE_LABELS.filter(({ value }) => typeCounts[value]).map(({ value }) => (
+              <span
+                key={value}
+                className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs text-gray-500"
+              >
+                {value} ({typeCounts[value]!.toLocaleString()})
+              </span>
+            ))}
+          </div>
+        )}
         <div
           className="relative"
           style={{ height: `${virtualizer.getTotalSize()}px` }}

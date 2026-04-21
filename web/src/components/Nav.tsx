@@ -1,5 +1,8 @@
 import { Link, useLocation } from '@tanstack/react-router';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { useRef, useState } from 'react';
+import { db } from '../db/db';
+import type { ItemType } from '../api/types';
 
 const TYPES = [
   { value: 'book', label: 'Books' },
@@ -21,6 +24,15 @@ export function Nav() {
   const [browseOpen, setBrowseOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const typeCounts = useLiveQuery(
+    () => Promise.all(
+      TYPES.map(({ value }) =>
+        db.items.where('type').equals(value).count().then((n) => [value, n] as [ItemType, number])
+      )
+    ).then((pairs) => Object.fromEntries(pairs) as Record<ItemType, number>),
+    []
+  );
+
   function openMenu() {
     if (closeTimer.current) clearTimeout(closeTimer.current);
     setBrowseOpen(true);
@@ -34,7 +46,8 @@ export function Nav() {
     <nav className="sticky top-0 z-50 flex h-14 items-center gap-4 border-b border-gray-200 bg-white px-4">
       <Link
         to="/publishers"
-        className="shrink-0 text-sm font-semibold text-gray-900"
+        className="shrink-0 font-semibold uppercase tracking-wide text-[#D30000]"
+        style={{ fontStretch: 'condensed' }}
       >
         O'Reilly Cache
       </Link>
@@ -86,6 +99,9 @@ export function Nav() {
                   ].join(' ')}
                 >
                   {label}
+                  {typeCounts?.[value] != null && (
+                    <span className="ml-1 text-gray-400">({typeCounts[value].toLocaleString()})</span>
+                  )}
                 </Link>
               ))}
             </div>

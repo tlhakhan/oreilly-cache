@@ -48,5 +48,11 @@ type Item struct {
 	Popularity      float64         `json:"popularity"`
 	Authors         json.RawMessage `json:"authors"`
 	Subjects        json.RawMessage `json:"subjects"`
-	PublisherUUID   string          `json:"publisher_uuid"`
+	Publishers      []ItemPublisher `json:"publishers"`
+}
+
+// ItemPublisher is the publisher entry nested inside an upstream Item response.
+type ItemPublisher struct {
+	UUID string `json:"uuid"`
+	Name string `json:"name"`
 }

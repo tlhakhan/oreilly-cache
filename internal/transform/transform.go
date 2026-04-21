@@ -58,6 +58,10 @@ func Publishers(pp []upstream.Publisher) PublisherIndex {
 
 // OneItem transforms a single upstream Item.
 func OneItem(item upstream.Item) Item {
+	publisherUUID := ""
+	if len(item.Publishers) > 0 {
+		publisherUUID = item.Publishers[0].UUID
+	}
 	return Item{
 		OURN:            item.OURN,
 		Name:            item.Name,
@@ -66,7 +70,7 @@ func OneItem(item upstream.Item) Item {
 		Popularity:      item.Popularity,
 		Authors:         namesFromRaw(item.Authors),
 		Subjects:        namesFromRaw(item.Subjects),
-		PublisherUUID:   item.PublisherUUID,
+		PublisherUUID:   publisherUUID,
 	}
 }
 
@@ -78,6 +82,7 @@ func Items(items []upstream.Item) ItemList {
 	}
 	return ItemList{Items: out}
 }
+
 
 // stringFromRaw unmarshals a JSON string RawMessage. Returns "" on null or error.
 func stringFromRaw(raw json.RawMessage) string {
