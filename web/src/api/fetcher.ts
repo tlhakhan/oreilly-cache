@@ -42,7 +42,11 @@ export async function fetchCached<T>(config: FetchConfig<T>): Promise<T[]> {
   }
 
   if (response.status === 304) {
-    return getFromDb();
+    const cached = await getFromDb();
+    if (cached.length > 0) return cached;
+    // syncMeta has a Last-Modified but the DB is empty (e.g. storage was
+    // cleared or data predates an index change). Re-fetch unconditionally.
+    response = await fetch(url);
   }
 
   if (!response.ok) {
