@@ -92,6 +92,8 @@ export function Nav() {
           )}
         </div>
       </div>
+
+      <span className="shrink-0 text-xs text-gray-400">v{__APP_VERSION__}</span>
     </nav>
   );
 }
