@@ -54,11 +54,17 @@ export async function fetchCached<T>(config: FetchConfig<T>): Promise<T[]> {
   const body: unknown = await response.json();
   const rows = validate(body);
 
-  await putToDb(rows);
-
-  const newLastMod = response.headers.get('Last-Modified');
-  if (newLastMod) {
-    await setLastModified(newLastMod);
+  // Storage can fail on mobile Chrome (QuotaExceededError). Keep it non-fatal
+  // so the freshly fetched rows are still returned. Skip setLastModified on
+  // failure so the next request re-fetches instead of relying on an empty cache.
+  try {
+    await putToDb(rows);
+    const newLastMod = response.headers.get('Last-Modified');
+    if (newLastMod) {
+      await setLastModified(newLastMod);
+    }
+  } catch (e) {
+    console.warn('fetchCached: failed to write to IndexedDB, skipping cache', e);
   }
 
   return rows;
