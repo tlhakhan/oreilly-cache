@@ -29,6 +29,8 @@ jobs:
 
       - name: build
         run: cd web && npm run build
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
 
       - name: upload dist
         uses: actions/upload-artifact@v4
